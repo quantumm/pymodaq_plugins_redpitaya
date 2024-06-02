@@ -40,6 +40,7 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
                  {'title': 'Port:', 'name': 'port', 'type': 'int', 'value': plugin_config('port')},
                  {'title': 'Board name:', 'name': 'bname', 'type': 'str', 'readonly': True},
                  {'title': 'Amplitude:', 'name': 'amplitude (V)', 'type': 'float', 'value': 1},
+                 {'title': 'Run/Stop', 'name': 'run', 'type': 'bool_push', 'value': False},
              ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilon)
 
     # _epsilon is the initial default value for the epsilon parameter allowing pymodaq to know if the controller reached
@@ -73,9 +74,11 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
         param: Parameter
             A given parameter (within detector_settings) whose value has been changed by the user
         """
-        ## TODO for your custom plugin
-        if param.name() == "a_parameter_you've_added_in_self.params":
-            self.controller.your_method_to_apply_this_param_change()
+        if param.name() == "run":
+            if param.value():
+                self.controller.tx_txt('OUTPUT1:STATE ON')
+            else:
+                self.controller.tx_txt('OUTPUT1:STATE OFF')
         else:
             pass
 
