@@ -39,7 +39,7 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
                  {'title': 'IP Address:', 'name': 'ip_address', 'type': 'str', 'value': plugin_config('ip_address')},
                  {'title': 'Port:', 'name': 'port', 'type': 'int', 'value': plugin_config('port')},
                  {'title': 'Board name:', 'name': 'bname', 'type': 'str', 'readonly': True},
-                 {'title': 'Amplitude:', 'name': 'amplitude (V)', 'type': 'float', 'value': 1},
+                 {'title': 'Amplitude (V):', 'name': 'amplitude', 'type': 'float', 'value': 1},
                  {'title': 'Run/Stop', 'name': 'run', 'type': 'bool_push', 'value': False},
              ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilon)
 
@@ -75,12 +75,16 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
         param: Parameter
             A given parameter (within detector_settings) whose value has been changed by the user
         """
+        aout: AnalogOutputFastChannel = self.controller.analog_out[1]
+
         if param.name() == "run":
-            aout: AnalogOutputFastChannel = self.controller.analog_out[1]
             if param.value():
                 aout.enable()
             else:
                 aout.disable()
+        elif param.name() == "amplitude":
+            if param.value():
+                aout.amplitude = param.value()
         else:
             pass
 
@@ -167,4 +171,4 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
 
 
 if __name__ == '__main__':
-    main(__file__)
+    main(__file__, title="RedPitaya")
