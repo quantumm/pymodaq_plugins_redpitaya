@@ -3,8 +3,8 @@ from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_pa
 from pymodaq.utils.daq_utils import ThreadCommand  # object used to send info back to the main thread
 from pymodaq.utils.parameter import Parameter
 from pymodaq_plugins_redpitaya.utils import Config
-from pymodaq_plugins_redpitaya.hardware.redpitaya_scpi import scpi as RedPitayaScpi
 
+from pymeasure.instruments.redpitaya.redpitaya_scpi import RedPitayaScpi, AnalogOutputFastChannel
 
 class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
     """ Instrument plugin class for an actuator.
@@ -56,7 +56,8 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
         -------
         float: The position obtained after scaling conversion.
         """
-        pos = DataActuator(data=float(self.controller.txrx_txt('SOUR1:FREQ:FIX?')))
+        aout: AnalogOutputFastChannel = self.controller.analog_out[1]
+        pos = DataActuator(data=float(aout.frequency))
         pos = self.get_position_with_scaling(pos)
         return pos
 
@@ -75,10 +76,11 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
             A given parameter (within detector_settings) whose value has been changed by the user
         """
         if param.name() == "run":
+            aout: AnalogOutputFastChannel = self.controller.analog_out[1]
             if param.value():
-                self.controller.tx_txt('OUTPUT1:STATE ON')
+                aout.enable()
             else:
-                self.controller.tx_txt('OUTPUT1:STATE OFF')
+                aout.disable()
         else:
             pass
 
@@ -99,8 +101,16 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
 
         self.controller = self.ini_stage_init(old_controller=controller,
                                               new_controller=RedPitayaScpi(
-                                                  host=self.settings["ip_address"],
-                                                  port=5000))
+                                                  ip_address=self.settings["ip_address"],
+                                                  port=self.settings["port"]))
+
+        ## Initialize the output channel
+        aout: AnalogOutputFastChannel = self.controller.analog_out[1]
+
+        aout.shape = "SINE"
+        aout.frequency = 5000
+        aout.amplitude = 1
+        aout.dutycycle = 100
 
         info = "The connection with the RedPitaya should be established."
         initialized = True
@@ -118,7 +128,8 @@ class DAQ_Move_RedPitayaRFGenerator(DAQ_Move_base):
         self.target_value = value
         value = self.set_position_with_scaling(value)  # apply scaling if the user specified one
 
-        self.controller.sour_set(1,"sine", 1, value.value())
+        aout: AnalogOutputFastChannel = self.controller.analog_out[1]
+        aout.frequency = value.value()
         self.emit_status(ThreadCommand('Update_Status', ['The RF frequency has been modified.']))
 
     def move_rel(self, value: DataActuator):
